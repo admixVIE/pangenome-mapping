@@ -1,0 +1,50 @@
+# --- Local configuration (per-machine paths; never commit) ---
+config.sh
+
+# --- Large reference / graph files fetched by download_references.sh ---
+references/*.fa
+references/*.fa.gz
+references/*.fa.fai
+references/*.dict
+references/*.gbz
+references/*.hapl
+references/*.dist
+references/*.min
+references/*.jar
+# (keep references/*.paths_list.txt and download_references.sh)
+
+# --- Pipeline outputs and intermediates ---
+results/
+*.bam
+*.bai
+*.cram
+*.crai
+*.gaf
+*.gaf.gz
+*.vcf
+*.vcf.gz
+*.vcf.gz.tbi
+*.kff
+*.dist
+*.min
+*.zipcodes
+
+# --- Reads / large data ---
+*.fastq
+*.fastq.gz
+*.fq
+*.fq.gz
+*.tar
+
+# --- SLURM logs and scratch ---
+*.out
+*.err
+*.log
+logs/
+slurm-*.out
+
+# --- OS / editor cruft ---
+.DS_Store
+*.swp
+__pycache__/
+*.pyc
