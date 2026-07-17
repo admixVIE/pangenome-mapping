@@ -91,6 +91,19 @@ sbatch scripts/run_mapping.slurm
 The script is **resumable**: each step is skipped if its output already exists,
 so a re-run continues where a failed run stopped.
 
+## Quick test
+
+A tiny synthetic pangenome ships with the repo so you can run the whole pipeline
+in seconds without downloading the large references — handy for checking your
+environment is set up correctly:
+
+```bash
+bash test/test_run.sh
+# -> TEST PASSED: ... toy_reads_k29_w11.surj_realn.bam  (Mapped 3993 / 4000 reads)
+```
+
+See [test/README.md](test/README.md) for details.
+
 ## Repository layout
 
 ```
@@ -104,7 +117,10 @@ pangenome-mapping/
 ├── references/
 │   ├── download_references.sh  # fetches hg38 + HPRC graph + ABRA2 (not in git)
 │   └── hprc-v1.1-mc-grch38.paths_list.txt   # small, ships with the repo
-└── test/                       # small runnable example (see test/README.md)
+└── test/
+    ├── test_run.sh             # end-to-end smoke test on the toy data
+    ├── make_test_data.sh       # regenerates the fixtures (optional)
+    └── data/                   # tiny synthetic pangenome (~260 KB)
 ```
 
 ## Outputs

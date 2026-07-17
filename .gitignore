@@ -48,3 +48,7 @@ slurm-*.out
 *.swp
 __pycache__/
 *.pyc
+
+# --- Test fixtures: keep the committed toy data, ignore run outputs ---
+!test/data/toy_reads.fq.gz
+test/work/
