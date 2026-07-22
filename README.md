@@ -50,7 +50,7 @@ developed with in parentheses):
 ## Setup
 
 ```bash
-git clone <your-gitlab-url>/pangenome-mapping.git
+git clone https://github.com/admixVIE/pangenome-mapping.git
 cd pangenome-mapping
 
 # 1. Download the large public reference files (~30 GB, one time).
