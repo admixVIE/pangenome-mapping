@@ -1,39 +1,79 @@
 # ==============================================================================
-# config.example.sh  ->  copy to config.sh and edit for YOUR system.
-# ------------------------------------------------------------------------------
-# map_to_pangenome.sh sources config.sh (if present) before running. Everything
-# here is optional: with no config.sh the script falls back to the LISC cluster
-# defaults it was developed on. On any other machine, set at least PANGENOME_ROOT
-# and load_environment().
+# config.example.sh  —  TEMPLATE.  Copy it to config.sh and edit for YOUR system:
 #
-# config.sh is git-ignored, so your local paths never get committed.
+#       cp config.example.sh config.sh
+#       nano config.sh
+#
+# ------------------------------------------------------------------------------
+# WHY THIS FILE EXISTS
+# The pipeline scripts contain NO machine-specific paths. Everything that is
+# different from one computer to another — where your reference files live, where
+# the GATK/ABRA2 jars are, and how the required tools are made available — lives
+# here in config.sh. map_to_pangenome.sh loads config.sh automatically before it
+# runs, so anything you set below overrides the built-in defaults.
+#
+# config.sh is git-ignored, so YOUR local paths are never committed. Everyone who
+# uses the repo keeps their own private config.sh; this template stays shared.
+#
+# ON ANY MACHINE OTHER THAN THE ORIGINAL LISC CLUSTER, CREATING config.sh IS
+# REQUIRED. Without it the scripts fall back to LISC-specific module and conda
+# names that will not exist on your system.
+#
+# You must set TWO things correctly (everything else usually stays as-is):
+#   (a) the paths to your reference files and the GATK/ABRA2 jars, and
+#   (b) load_environment(), which makes the tools available on your system.
 # ==============================================================================
 
-# --- Where download_references.sh put the reference files ---
+
+# ------------------------------------------------------------------------------
+# (a) PATHS
+# ------------------------------------------------------------------------------
+
+# Directory where references/download_references.sh downloaded the big files.
+# Edit this to the absolute path of your references/ directory.
 export PANGENOME_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/references"
 
-# --- Pangenome graph fileset (usually leave as-is for the HPRC v1.1 graph) ---
+# Pangenome graph fileset. Leave as-is for the HPRC v1.1 graph shipped by
+# download_references.sh. Only change these if you use a different graph.
 export GRAPH_NAME="hprc-v1.1-mc-grch38"          # expects $GRAPH_NAME.gbz
 export HAPL_NAME="hprc-v1.1-mc-grch38.hapl"
 export PATHS_NAME="hprc-v1.1-mc-grch38.paths_list.txt"
-export SEQ_PREFIX="GRCh38#0#"                     # prefix stripped from contig names
+export SEQ_PREFIX="GRCh38#0#"                     # contig-name prefix to strip
 
-# --- Reference genome (must match the graph's reference paths) ---
-export REF_FA="$PANGENOME_ROOT/hg38.fa"           # needs .fai and .dict alongside
+# Linear reference genome. It must have a .fai and a .dict file next to it
+# (download_references.sh builds both for you).
+export REF_FA="$PANGENOME_ROOT/hg38.fa"
 
-# --- Tools ---
+# Tool jars.
 export ABRA2_JAR="$PANGENOME_ROOT/abra2-2.23.jar"
-# GATK 3.8 RealignerTargetCreator needs Java 8:
-export GATK3_JAR="/path/to/GenomeAnalysisTK.jar"  # GATK 3.8 jar
-export JAVA8="java"                               # a Java 8 executable
+# GATK 3.8's RealignerTargetCreator needs a Java 8 runtime specifically:
+export GATK3_JAR="/path/to/GenomeAnalysisTK-3.8.jar"   # <-- EDIT
+export JAVA8="java"                                     # <-- EDIT: a Java 8 executable
 
-# --- Make the pipeline's tools available (edit for your cluster/conda) ---
-# Required on PATH: kmc, vg, samtools, bedtools, bamleftalign (freebayes), java.
+
+# ------------------------------------------------------------------------------
+# (b) ENVIRONMENT
+# ------------------------------------------------------------------------------
+# load_environment() is run for you, once, before the pipeline starts. Put here
+# whatever commands YOUR system needs so that these tools end up on the PATH:
+#
+#       vg   kmc   samtools   bedtools   bamleftalign(freebayes)   java
+#
+# Pick the block that matches your setup and delete the others.
+
 load_environment() {
-    # Example for an environment-modules cluster:
-    ml load KMC vg Conda freebayes SAMtools BEDTools
-    conda activate GATK-3.8.0
-    conda activate freebayes
-    # Or, for a single conda env:
+
+    # --- Option 1: an environment-modules / Lmod cluster ---
+    # (module names are examples — use whatever `module avail` shows on your cluster)
+    ml load KMC vg SAMtools BEDTools freebayes
+    # bamleftalign sometimes lives in a conda env even on module clusters:
+    # export PATH="$PATH:/path/to/conda/envs/freebayes/bin"
+
+    # --- Option 2: a single conda environment with everything installed ---
     # conda activate pangenome-mapping
+
+    # --- Option 3: manual installs on a plain server ---
+    # export PATH="/opt/vg/bin:/opt/kmc/bin:/opt/freebayes/bin:$PATH"
+
+    :  # (no-op so the function is never empty; remove once you add commands above)
 }

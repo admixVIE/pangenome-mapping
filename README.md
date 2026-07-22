@@ -62,10 +62,27 @@ cp config.example.sh config.sh
 $EDITOR config.sh
 ```
 
-`config.sh` holds everything machine-specific (reference location, the GATK 3.8
-jar, and a `load_environment()` function that loads your modules / conda envs).
-It is git-ignored. If you run on the original LISC cluster the built-in fallbacks
-already work, so `config.sh` is optional there.
+## Configuration
+
+All machine-specific settings live in `config.sh` (git-ignored, so your paths
+are never committed). Copy the template and edit it:
+
+```bash
+cp config.example.sh config.sh
+$EDITOR config.sh
+```
+
+Set two things:
+
+- **Paths** — `PANGENOME_ROOT` (your `references/` dir), and `GATK3_JAR` / `JAVA8`.
+- **Environment** — the `load_environment()` function, so that `vg`, `kmc`,
+  `samtools`, `bedtools`, `bamleftalign` and `java` are on the `PATH`. On a
+  cluster with modules use e.g. `ml load KMC vg SAMtools BEDTools freebayes`;
+  with conda use `conda activate <your-env>`. `config.example.sh` has examples
+  for both.
+
+> Outside the original LISC cluster, creating `config.sh` is required — the
+> built-in fallbacks use LISC-specific module names.
 
 ## Usage
 
