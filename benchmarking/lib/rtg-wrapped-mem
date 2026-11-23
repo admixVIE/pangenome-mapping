@@ -1,0 +1,5 @@
+#!/bin/bash
+# Copy of bench_sv rtg-wrapped, plus an explicit Java heap cap (RTG_MEM=$RTGMEM, default 100g) so rtg
+# does not size itself from the node RAM (default 90%) instead of the Slurm job limit.
+RTG="${RTG_DIR:?set RTG_DIR to your rtg-tools directory}"
+exec "$RTG/rtg" RTG_JAVA=${RTG_JAVA_BIN:-java} RTG_MEM=${RTGMEM:-100g} "$@"

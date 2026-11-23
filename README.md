@@ -123,6 +123,14 @@ bash mapping/test/test_run.sh
 
 See [mapping/test/README.md](mapping/test/README.md) for details.
 
+## Simulated reads and benchmarking
+
+`reads_simulation/` holds the gargammel-based pipeline that generates damaged,
+short single-end read sets (3 read-length distributions x 3 damage levels x
+4 coverages) from the HG002 assembly, and `benchmarking/` the hap.py scripts
+used to score linear vs pangenome mapping on them. Both need their paths set
+via environment variables / a config file; see the README in each folder.
+
 ## Repository layout
 
 ```
@@ -134,6 +142,8 @@ pangenome-mapping/
 │   ├── rename_bam_stream.py    # strips the graph's contig-name prefix
 │   ├── run_mapping.slurm       # SLURM submission wrapper
 │   └── test/                   # end-to-end smoke test + tiny toy pangenome
+├── reads_simulation/           # gargammel + ART simulation of damaged short reads (see its README)
+├── benchmarking/               # hap.py scoring + summary/plot scripts (see its README)
 └── references/
     ├── download_references.sh  # fetches hg38 + HPRC graph (not in git)
     └── hprc-v1.1-mc-grch38.paths_list.txt   # small, ships with the repo

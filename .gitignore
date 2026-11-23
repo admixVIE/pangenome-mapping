@@ -52,3 +52,14 @@ __pycache__/
 # --- Test fixtures: keep the committed toy data, ignore run outputs ---
 !mapping/test/data/toy_reads.fq.gz
 mapping/test/work/
+
+# --- benchmarking: local config (never commit) ---
+benchmarking/config.sh
+
+# --- reads_simulation: generated data and the gargammel checkout ---
+reads_simulation/tools/
+reads_simulation/input/
+reads_simulation/length/
+reads_simulation/reads/
+reads_simulation/logs/
+reads_simulation/summary/
