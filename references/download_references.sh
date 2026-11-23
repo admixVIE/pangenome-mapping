@@ -11,7 +11,6 @@
 #     * hg38.fa.fai / hg38.dict      indexes for the above (built here)
 #     * hprc-v1.1-mc-grch38.gbz      HPRC pangenome graph             ~3 GB
 #     * hprc-v1.1-mc-grch38.hapl     haplotype-sampling index        ~20 GB
-#     * abra2-2.23.jar               ABRA2 indel realigner            ~9 MB
 #
 #   (hprc-v1.1-mc-grch38.paths_list.txt is small and ships with the repo.)
 #
@@ -26,7 +25,6 @@ cd "$DEST"
 
 HPRC_BASE="https://s3-us-west-2.amazonaws.com/human-pangenomics/pangenomes/freeze/freeze1/minigraph-cactus/hprc-v1.1-mc-grch38"
 HG38_URL="https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/hg38.fa.gz"
-ABRA2_URL="https://github.com/mozack/abra2/releases/download/v2.23/abra2-2.23.jar"
 
 # Prefer wget, fall back to curl.
 fetch() {  # fetch <url> <output>
@@ -47,7 +45,7 @@ if [ ! -f "hg38.fa" ]; then
     gunzip -k hg38.fa.gz
 fi
 
-echo "==> Indexing hg38 (.fai + .dict for GATK)"
+echo "==> Indexing hg38 (.fai + .dict)"
 command -v samtools >/dev/null 2>&1 || { echo "ERROR: samtools not on PATH (try: ml load SAMtools)"; exit 1; }
 [ -f "hg38.fa.fai" ] || samtools faidx hg38.fa
 [ -f "hg38.dict" ]   || samtools dict hg38.fa -o hg38.dict
@@ -55,9 +53,6 @@ command -v samtools >/dev/null 2>&1 || { echo "ERROR: samtools not on PATH (try:
 echo "==> HPRC pangenome graph"
 fetch "$HPRC_BASE/hprc-v1.1-mc-grch38.gbz"  "hprc-v1.1-mc-grch38.gbz"
 fetch "$HPRC_BASE/hprc-v1.1-mc-grch38.hapl" "hprc-v1.1-mc-grch38.hapl"
-
-echo "==> ABRA2 realigner"
-fetch "$ABRA2_URL" "abra2-2.23.jar"
 
 echo ""
 echo "Done. Reference files are in: $DEST"

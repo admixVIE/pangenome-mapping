@@ -10,7 +10,7 @@
 # SLURM submission wrapper for map_to_pangenome.sh
 # ------------------------------------------------------------------------------
 # Edit the variables below (or pass them in via --export) and submit with:
-#     sbatch scripts/run_mapping.slurm
+#     sbatch mapping/run_mapping.slurm
 #
 # For usage / all options of the underlying script:
 #     bash mapping/map_to_pangenome.sh
@@ -22,8 +22,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SAMPLE="sample_name"                # required
 RUNS_TSV="/path/to/runs.tsv"        # columns: sample, run, fq1, fq2 (fq2 empty for single-end)
 THREADS="${SLURM_CPUS_PER_TASK:-8}"
-KMER=15                             # mapping minimizer k (haplotype sampling is fixed at 29/11)
-WINDOW=5                            # mapping minimizer w
+KMER=""                             # mapping minimizer k; empty = config.sh MAP_KMER or giraffe default (29)
+WINDOW=""                           # mapping minimizer w; empty = config.sh MAP_WINDOW or giraffe default (11)
 
-echo "Running: map_to_pangenome.sh -S $SAMPLE --runs $RUNS_TSV -t $THREADS -k $KMER -w $WINDOW"
-bash "$SCRIPT_DIR/map_to_pangenome.sh" -S "$SAMPLE" --runs "$RUNS_TSV" -t "$THREADS" -k "$KMER" -w "$WINDOW"
+args=(-S "$SAMPLE" --runs "$RUNS_TSV" -t "$THREADS")
+[ -n "$KMER" ]   && args+=(-k "$KMER")
+[ -n "$WINDOW" ] && args+=(-w "$WINDOW")
+
+echo "Running: map_to_pangenome.sh ${args[*]}"
+bash "$SCRIPT_DIR/map_to_pangenome.sh" "${args[@]}"

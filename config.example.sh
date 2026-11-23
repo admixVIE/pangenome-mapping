@@ -7,8 +7,7 @@
 # ------------------------------------------------------------------------------
 # WHY THIS FILE EXISTS
 # The pipeline scripts contain NO machine-specific paths. Everything that is
-# different from one computer to another — where your reference files live, where
-# the GATK/ABRA2 jars are, and how the required tools are made available — lives
+# different from one computer to another — where your reference files live and how the required tools are made available — lives
 # here in config.sh. map_to_pangenome.sh loads config.sh automatically before it
 # runs, so anything you set below overrides the built-in defaults.
 #
@@ -20,7 +19,7 @@
 # names that will not exist on your system.
 #
 # You must set TWO things correctly (everything else usually stays as-is):
-#   (a) the paths to your reference files and the GATK/ABRA2 jars, and
+#   (a) the paths to your reference files, and
 #   (b) load_environment(), which makes the tools available on your system.
 # ==============================================================================
 
@@ -44,11 +43,15 @@ export SEQ_PREFIX="GRCh38#0#"                     # contig-name prefix to strip
 # (download_references.sh builds both for you).
 export REF_FA="$PANGENOME_ROOT/hg38.fa"
 
-# Tool jars.
-export ABRA2_JAR="$PANGENOME_ROOT/abra2-2.23.jar"
-# GATK 3.8's RealignerTargetCreator needs a Java 8 runtime specifically:
-export GATK3_JAR="/path/to/GenomeAnalysisTK-3.8.jar"   # <-- EDIT
-export JAVA8="java"                                     # <-- EDIT: a Java 8 executable
+# Mapping minimizer (used by vg minimizer / giraffe). Optional: if unset, vg
+# giraffe's own defaults apply (k=29, w=11). The -k / -w command-line flags
+# override these.
+# export MAP_KMER=29
+# export MAP_WINDOW=11
+
+# Number of candidate haplotypes for personalized graph sampling (default 4).
+# Override per run with --num-haplotypes.
+# export NUM_HAPLOTYPES=4
 
 
 # ------------------------------------------------------------------------------
@@ -57,7 +60,7 @@ export JAVA8="java"                                     # <-- EDIT: a Java 8 exe
 # load_environment() is run for you, once, before the pipeline starts. Put here
 # whatever commands YOUR system needs so that these tools end up on the PATH:
 #
-#       vg   kmc   samtools   bedtools   bamleftalign(freebayes)   java
+#       vg   kmc   samtools   python3
 #
 # Pick the block that matches your setup and delete the others.
 
@@ -65,15 +68,13 @@ load_environment() {
 
     # --- Option 1: an environment-modules / Lmod cluster ---
     # (module names are examples — use whatever `module avail` shows on your cluster)
-    ml load KMC vg SAMtools BEDTools freebayes
-    # bamleftalign sometimes lives in a conda env even on module clusters:
-    # export PATH="$PATH:/path/to/conda/envs/freebayes/bin"
+    ml load KMC vg SAMtools
 
     # --- Option 2: a single conda environment with everything installed ---
     # conda activate pangenome-mapping
 
     # --- Option 3: manual installs on a plain server ---
-    # export PATH="/opt/vg/bin:/opt/kmc/bin:/opt/freebayes/bin:$PATH"
+    # export PATH="/opt/vg/bin:/opt/kmc/bin:$PATH"
 
     :  # (no-op so the function is never empty; remove once you add commands above)
 }

@@ -10,20 +10,19 @@ bash mapping/test/test_run.sh
 ```
 
 This runs the full `map_to_pangenome.sh` pipeline on the toy data and checks that
-a non-empty indel-realigned BAM with mapped reads is produced. It uses the same
-tools as a real run (vg, kmc, samtools, bedtools, bamleftalign, GATK 3.8 + Java 8,
-ABRA2), so it also confirms your `config.sh` / environment is set up correctly.
-Set that up first (see the main [README](../README.md)); on the original LISC
+a non-empty BAM with mapped reads is produced. It uses the same
+tools as a real run (vg, kmc, samtools), so it also confirms your `config.sh` / environment is set up correctly.
+Set that up first (see the main [README](../../README.md)); on the original LISC
 cluster the built-in fallbacks are used.
 
 Expected output (numbers may vary slightly by tool version):
 
 ```
-TEST PASSED: produced .../toy_reads.k15_w5.surj_realn.bam
+TEST PASSED: produced .../toy_reads.k15_w5.bam
 Mapped 3993 / 4000 reads.
 ```
 
-Outputs are written to `test/work/` (git-ignored).
+Outputs are written to `mapping/test/work/` (git-ignored).
 
 ## What's in `data/`
 

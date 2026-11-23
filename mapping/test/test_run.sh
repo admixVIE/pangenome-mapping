@@ -6,8 +6,7 @@
 # and checks that a non-empty final BAM with mapped reads is produced. Finishes
 # in seconds and needs no reference download.
 #
-# It uses the SAME tools/environment as a real run (vg, kmc, samtools, bedtools,
-# bamleftalign, GATK3+Java8, ABRA2), so it also doubles as a check that your
+# It uses the SAME tools/environment as a real run (vg, kmc, samtools), so it also doubles as a check that your
 # config.sh / environment is set up correctly. Set those up first (see the main
 # README); on the original LISC cluster the built-in fallbacks are used.
 #
@@ -29,14 +28,15 @@ echo "== Running pipeline on toy data =="
 # Toy graph/reference both use the contig name "chr1", so no prefix needs to be
 # stripped; -pre is set to a string that does not occur (a no-op). On real HPRC
 # data the prefix is "GRCh38#0#".
+printf 'sample\trun\tfq1\tfq2\ntoy_reads\trun1\t%s\t\n' "$DATA/toy_reads.fq.gz" > runs.tsv
 bash "$REPO/map_to_pangenome.sh" \
-    -s1 "$DATA/toy_reads.fq.gz" -t "$THREADS" \
+    -S toy_reads --runs runs.tsv -t "$THREADS" \
     -r "$DATA" \
     -g toy.giraffe.gbz -h toy.hapl -p toy.paths_list.txt \
     -pre "none#" -ref "$DATA/chr1.fa" \
     -k 15 -w 5
 
-BAM="$WORK/results/toy_reads/toy_reads.k15_w5.surj_realn.bam"
+BAM="$WORK/results/toy_reads/toy_reads.k15_w5.bam"
 ROW="$WORK/results/toy_reads/row_k15_w5.tsv"
 
 echo ""
