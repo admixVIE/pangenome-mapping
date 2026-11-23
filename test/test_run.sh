@@ -34,10 +34,10 @@ bash "$REPO/scripts/map_to_pangenome.sh" \
     -r "$DATA" \
     -g toy.giraffe.gbz -h toy.hapl -p toy.paths_list.txt \
     -pre "none#" -ref "$DATA/chr1.fa" \
-    -k 29 -w 11
+    -k 15 -w 5
 
-BAM="$WORK/results/toy_reads_k29_w11/toy_reads_k29_w11.surj_realn.bam"
-ROW="$WORK/results/toy_reads_k29_w11/row_k29_w11.tsv"
+BAM="$WORK/results/toy_reads/toy_reads.k15_w5.surj_realn.bam"
+ROW="$WORK/results/toy_reads/row_k15_w5.tsv"
 
 echo ""
 echo "== Result =="

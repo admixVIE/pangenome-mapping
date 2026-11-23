@@ -19,7 +19,7 @@ cluster the built-in fallbacks are used.
 Expected output (numbers may vary slightly by tool version):
 
 ```
-TEST PASSED: produced .../toy_reads_k29_w11.surj_realn.bam
+TEST PASSED: produced .../toy_reads.k15_w5.surj_realn.bam
 Mapped 3993 / 4000 reads.
 ```
 

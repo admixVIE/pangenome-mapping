@@ -19,15 +19,11 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # --- Inputs (edit these) ---
-S1="/path/to/reads_R1.fastq.gz"    # required
-S2=""                               # optional second file for paired-end
+SAMPLE="sample_name"                # required
+RUNS_TSV="/path/to/runs.tsv"        # columns: sample, run, fq1, fq2 (fq2 empty for single-end)
 THREADS="${SLURM_CPUS_PER_TASK:-8}"
-KMER=29                             # vg k-mer length
-WINDOW=11                           # vg window length
+KMER=15                             # mapping minimizer k (haplotype sampling is fixed at 29/11)
+WINDOW=5                            # mapping minimizer w
 
-# --- Build argument list ---
-args=(-s1 "$S1" -t "$THREADS" -k "$KMER" -w "$WINDOW")
-[ -n "$S2" ] && args+=(-s2 "$S2")
-
-echo "Running: map_to_pangenome.sh ${args[*]}"
-bash "$SCRIPT_DIR/map_to_pangenome.sh" "${args[@]}"
+echo "Running: map_to_pangenome.sh -S $SAMPLE --runs $RUNS_TSV -t $THREADS -k $KMER -w $WINDOW"
+bash "$SCRIPT_DIR/map_to_pangenome.sh" -S "$SAMPLE" --runs "$RUNS_TSV" -t "$THREADS" -k "$KMER" -w "$WINDOW"

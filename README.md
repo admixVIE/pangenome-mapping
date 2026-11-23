@@ -11,14 +11,14 @@ mapping, which improves both speed and accuracy over mapping to the full graph.
 ## Pipeline overview
 
 ```
-FASTQ (single- or paired-end)
+FASTQ (one or more runs per sample, single- or paired-end)
    │
-   ├─ 1. KMC              count k-mers in the reads
-   ├─ 2. vg haplotypes    sample a personalized graph (.gbz) from the HPRC graph
+   ├─ 1. KMC              count k-mers in all runs of the sample (k=29)
+   ├─ 2. vg haplotypes    sample ONE personalized graph (.gbz) per sample (k=29, w=11)
    ├─ 3. vg index         distance index
-   ├─ 4. vg minimizer     minimizer index
-   ├─ 5. vg giraffe       map reads to the personalized graph  → GAF
-   ├─ 6. vg surject       project GAF onto GRCh38 paths        → BAM
+   ├─ 4. vg minimizer     minimizer index (mapping k/w, default 15/5)
+   ├─ 5. vg giraffe       map each run to the personalized graph → one GAF per run
+   ├─ 6. vg surject       project each GAF onto GRCh38 paths     → one BAM per run, merged per sample
    │     rename_bam_stream.py   strip the "GRCh38#0#" contig prefix
    │     bamleftalign + samtools sort
    ├─ 8. GATK3 RealignerTargetCreator   find indel-realignment targets
@@ -26,8 +26,8 @@ FASTQ (single- or paired-end)
    └─  samtools stats     mapping-quality summary (row_k<k>_w<w>.tsv, MAPQ dist)
 ```
 
-Output for a sample lands in `results/<sample>_k<k>_w<w>/`, ending in
-`*.surj_realn.bam` (+ `.bai`) and the stats TSVs.
+Output for a sample lands in `results/<sample>/`, ending in
+`<sample>.k<k>_w<w>.surj_realn.bam` (+ `.bai`) and the stats TSVs.
 
 ## Requirements
 
@@ -93,8 +93,11 @@ bash scripts/map_to_pangenome.sh -s1 reads.fq.gz -t 8
 # paired-end
 bash scripts/map_to_pangenome.sh -s1 reads_R1.fq.gz -s2 reads_R2.fq.gz -t 8
 
-# change vg k-mer / window parameters
-bash scripts/map_to_pangenome.sh -s1 reads.fq.gz -t 8 -k 15 -w 5
+# several runs per sample (runs.tsv: sample, run, fq1, fq2; fq2 empty for single-end)
+bash scripts/map_to_pangenome.sh -S Bon002 --runs runs.tsv -t 8
+
+# change the mapping minimizer k / w (default 15 / 5; haplotype sampling is fixed at 29 / 11)
+bash scripts/map_to_pangenome.sh -S Bon002 --runs runs.tsv -t 8 -k 29 -w 11
 ```
 
 Run with no arguments to print the full option list (`-r`, `-ref`, `-g`, `-h`,
@@ -116,7 +119,7 @@ environment is set up correctly:
 
 ```bash
 bash test/test_run.sh
-# -> TEST PASSED: ... toy_reads_k29_w11.surj_realn.bam  (Mapped 3993 / 4000 reads)
+# -> TEST PASSED: ... toy_reads.k15_w5.surj_realn.bam  (Mapped 3993 / 4000 reads)
 ```
 
 See [test/README.md](test/README.md) for details.
@@ -142,9 +145,9 @@ pangenome-mapping/
 
 ## Outputs
 
-For each run in `results/<sample>_k<k>_w<w>/`:
+For each run in `results/<sample>/`:
 
-- `*.surj_realn.bam` (+ `.bai`) — final indel-realigned alignments on GRCh38
+- `<sample>.k<k>_w<w>.surj_realn.bam` (+ `.bai`) — final indel-realigned alignments on GRCh38
 - `*_samtools.stats`, `*_flagstat.txt` — full samtools statistics
 - `row_k<k>_w<w>.tsv` — one-line summary: total / mapped / unmapped / MAPQ≥30
 - `*_mapq_distribution.tsv` — MAPQ histogram for plotting

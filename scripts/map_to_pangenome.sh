@@ -23,23 +23,30 @@ DEFAULT_PATHS_NAME="${PATHS_NAME:-hprc-v1.1-mc-grch38.paths_list.txt}"
 DEFAULT_PREFIX="${SEQ_PREFIX:-GRCh38#0#}"
 DEFAULT_ABRA_JAR="${ABRA2_JAR:-$DEFAULT_ROOT/abra2-2.23.jar}"
 RENAME_SCRIPT="${RENAME_SCRIPT:-$SCRIPT_DIR/rename_bam_stream.py}"
-DEFAULT_KMER=29
-DEFAULT_WINDOW=11
+DEFAULT_KMER=15
+DEFAULT_WINDOW=5
+SAMPLING_KMER=29
+SAMPLING_WINDOW=11
 
 # --- Usage Function ---
 usage() {
-    echo "Usage: $0 -s1 <fastq1> [-s2 <fastq2>] -t <threads> [options]"
+    echo "Usage: $0 -S <sample> --runs <runs.tsv> -t <threads> [options]"
+    echo "   or: $0 -s1 <fastq1> [-s2 <fastq2>] [-S <sample>] -t <threads> [options]"
     echo ""
     echo "Required:"
-    echo "  -s1  <path>    Input Fastq R1"
+    echo "  -S   <string>  Sample name (required with --runs)"
+    echo "  --runs <path>  TSV with header: sample, run, fq1, fq2 (fq2 empty for single-end)"
     echo "  -t   <int>     Number of threads"
     echo ""
-    echo "VG Parameters:"
-    echo "  -k   <int>     K-mer length (default: $DEFAULT_KMER)"
-    echo "  -w   <int>     Window length (default: $DEFAULT_WINDOW)"
+    echo "Single run (instead of --runs):"
+    echo "  -s1  <path>    Input Fastq R1"
+    echo "  -s2  <path>    Input Fastq R2 (paired-end)"
     echo ""
-    echo "Optional Input for paird end reads:"
-    echo "  -s2  <path>    Input Fastq R2 "
+    echo "  --keep-prerealn  Keep the merged BAM from before indel realignment"
+    echo ""
+    echo "Mapping minimizer (haplotype sampling is fixed at k=$SAMPLING_KMER, w=$SAMPLING_WINDOW):"
+    echo "  -k   <int>     Minimizer k-mer length (default: $DEFAULT_KMER)"
+    echo "  -w   <int>     Minimizer window length (default: $DEFAULT_WINDOW)"
     echo ""
     echo "Optional Inputs:"
     echo "  -r   <path>    Root directory for reference/graph files (default: $DEFAULT_ROOT)"
@@ -62,6 +69,9 @@ while [[ "$#" -gt 0 ]]; do
     case $1 in
         -s1)  s1="$2"; shift ;;
         -s2)  s2="$2"; shift ;;
+        -S)   sample_base="$2"; shift ;;
+        --runs) runs_tsv="$2"; shift ;;
+        --keep-prerealn) keep_prerealn=1 ;;
         -tag)  tag="$2"; shift ;;
         -t)   threads="$2"; shift ;;
         -r)   r_in="$2"; shift ;;
@@ -78,7 +88,8 @@ while [[ "$#" -gt 0 ]]; do
 done
 
 # Check required inputs
-if [ -z "$s1" ] || [ -z "$threads" ]; then usage; fi
+if [ -z "$threads" ] || { [ -z "$s1" ] && [ -z "$runs_tsv" ]; }; then usage; fi
+if [ -n "$runs_tsv" ] && [ -z "$sample_base" ]; then usage; fi
 
 # --- Final Variable Assignment ---
 root_dir=${r_in:-$DEFAULT_ROOT}
@@ -124,33 +135,46 @@ gbz_path=$(find_file "$gbz_name")
 hapl_path=$(find_file "$hapl_name")
 ref_paths_list=$(find_file "$paths_name")
 
-# Extract base name from s1
-sample_base=$(basename "$s1" | sed -E 's/_R[12].*//; s/\.fastq.*//; s/\.fq.*//')
-
-if [ -z "$sample_base" ]; then 
-    echo "Error: Failed to extract sample name from $s1"; exit 1; 
+RUN_IDS=(); RUN_FQ1=(); RUN_FQ2=()
+if [ -n "$runs_tsv" ]; then
+    if [ ! -f "$runs_tsv" ]; then echo "ERROR: Runs TSV not found ($runs_tsv)"; exit 1; fi
+    while IFS=$'\t' read -r t_sample t_run t_fq1 t_fq2; do
+        [ "$t_sample" = "$sample_base" ] || continue
+        RUN_IDS+=("$t_run"); RUN_FQ1+=("$t_fq1"); RUN_FQ2+=("$t_fq2")
+    done < <(tail -n +2 "$runs_tsv" | tr -d '\r')
+    if [ ${#RUN_IDS[@]} -eq 0 ]; then echo "ERROR: No runs for sample $sample_base in $runs_tsv"; exit 1; fi
+else
+    [ -n "$sample_base" ] || sample_base=$(basename "$s1" | sed -E 's/_R[12].*//; s/\.fastq.*//; s/\.fq.*//')
+    if [ -z "$sample_base" ]; then
+        echo "Error: Failed to extract sample name from $s1"; exit 1;
+    fi
+    RUN_IDS=("run1"); RUN_FQ1=("$s1"); RUN_FQ2=("$s2")
 fi
 
-sample="${sample_base}_k${kmer}_w${window}"
+sample="${sample_base}"
+MAPTAG="k${kmer}_w${window}"
 RES_DIR="results/${sample}"
+RUNS_DIR="$RES_DIR/runs"
 
-# -p ensures the script doesn't error if the directory already exists
-mkdir -p "$RES_DIR"
+mkdir -p "$RES_DIR" "$RUNS_DIR"
 mkdir -p "$RES_DIR/temp_kmc"
 
 # Define Final Output Targets
 KMC_OUT="$RES_DIR/${sample}.kff"
 HAP_OUT="$RES_DIR/${sample}.haplotypes.gbz"
 DIST_OUT="$RES_DIR/${sample}.dist"
-MIN_OUT="$RES_DIR/${sample}.min"
-GAF_OUT="$RES_DIR/${sample}.gaf.gz"
-ZIPCODES="$RES_DIR/${sample}.zipcodes"
+MIN_OUT="$RES_DIR/${sample}.${MAPTAG}.min"
+ZIPCODES="$RES_DIR/${sample}.${MAPTAG}.zipcodes"
+SURJ_BAM="$RES_DIR/${sample}.${MAPTAG}.surj.bam"
+FINAL_BAM="$RES_DIR/${sample}.${MAPTAG}.surj_realn.bam"
 
 # --- Sanity Check Files ---
 if [ "$gbz_path" == "MISSING" ]; then echo "ERROR: GBZ file not found ($gbz_name)"; exit 1; fi
 if [ "$hapl_path" == "MISSING" ]; then echo "ERROR: Haplotype file not found ($hapl_name)"; exit 1; fi
 if [ "$ref_paths_list" == "MISSING" ]; then echo "ERROR: Paths list not found ($paths_name)"; exit 1; fi
-if [ ! -f "$s1" ]; then echo "ERROR: Input Fastq not found ($s1)"; exit 1; fi
+for f in "${RUN_FQ1[@]}" "${RUN_FQ2[@]}"; do
+    if [ -n "$f" ] && [ ! -f "$f" ]; then echo "ERROR: Input Fastq not found ($f)"; exit 1; fi
+done
 
 # --- Environment Setup ---
 # Define load_environment() in config.sh to make the required tools available
@@ -175,9 +199,8 @@ if [ -f "$KMC_OUT" ] || [ -f "$HAP_OUT" ]; then
     echo "[SKIP] Step 1: KMC output already exists."
 else
     echo "[RUN] Step 1: Counting k-mers"
-    echo "$s1" > kmc_filelist.txt
-    [[ -n "$s2" ]] && echo "$s2" >> kmc_filelist.txt
-    kmc -k${kmer} -m2 -okff -t${threads} @kmc_filelist.txt "$RES_DIR/${sample}" "$RES_DIR/temp_kmc"
+    printf '%s\n' "${RUN_FQ1[@]}" "${RUN_FQ2[@]}" | grep -v '^$' > kmc_filelist.txt
+    kmc -k${SAMPLING_KMER} -m2 -okff -t${threads} @kmc_filelist.txt "$RES_DIR/${sample}" "$RES_DIR/temp_kmc"
     rm -rf "$RES_DIR/temp_kmc" kmc_filelist.txt
 fi
 
@@ -187,44 +210,46 @@ if [ -f "$HAP_OUT" ]; then
 else
     echo "[RUN] Step 2: Determining haplotypes"
     vg haplotypes -v 2 -t ${threads} \
-        --num-haplotypes 4 --present-discount 0.9 --het-adjustment 0.05 \
-        --absent-score 0.8 --include-reference --diploid-sampling --kmer-length ${kmer} --window-leng ${window} \
+        --num-haplotypes 32 --present-discount 0.9 --het-adjustment 0.05 \
+        --absent-score 0.8 --include-reference --diploid-sampling --kmer-length ${SAMPLING_KMER} --window-leng ${SAMPLING_WINDOW} \
         -i ${hapl_path} -k ${KMC_OUT} -g ${HAP_OUT} ${gbz_path}
     [[ $? -eq 0 ]] && rm -f "${KMC_OUT}"
 fi
 
 # --- STEP 3: Index graph (distance) ---
-if [ -f "$DIST_OUT" ] || [ -f "$GAF_OUT" ]; then
+if [ -f "$DIST_OUT" ]; then
     echo "[SKIP] Step 3: Distance index exists."
 else
-    vg index -k ${kmer} -j ${DIST_OUT} ${HAP_OUT}
+    vg index -j ${DIST_OUT} ${HAP_OUT}
 fi
 
 # --- STEP 4: Index graph (minimizer) ---
-if [ -f "$MIN_OUT" ] || [ -f "$GAF_OUT" ]; then
+if [ -f "$MIN_OUT" ] || [ -f "$SURJ_BAM" ] || [ -f "$FINAL_BAM" ]; then
     echo "[SKIP] Step 4: Minimizer index exists."
 else
     echo "[RUN] Step 4: Creating Minimizer Index"
     vg minimizer -p -t ${threads} -d ${DIST_OUT} -o ${MIN_OUT} -z ${ZIPCODES} ${HAP_OUT} -k ${kmer} -w ${window}
 fi
 
-# --- STEP 5: Mapping with vg giraffe ---
-if [ -f "$GAF_OUT" ]; then
-    echo "[SKIP] Step 5: GAF output exists."
-else
-    echo "[RUN] Step 5: Mapping with vg giraffe"
-    GIRAFFE_OPTS="--progress --sample ${sample} --output-format gaf -Z ${HAP_OUT} -d ${DIST_OUT} -m ${MIN_OUT} -z ${ZIPCODES} -t ${threads}"
-    if [ -n "$s2" ]; then
-        vg giraffe $GIRAFFE_OPTS -f "${s1}" -f "${s2}" | gzip > "${GAF_OUT}"
+# --- STEP 5: Mapping with vg giraffe (one GAF per run) ---
+GIRAFFE_OPTS="--progress --sample ${sample} --output-format gaf -Z ${HAP_OUT} -d ${DIST_OUT} -m ${MIN_OUT} -z ${ZIPCODES} -t ${threads}"
+for i in "${!RUN_IDS[@]}"; do
+    run="${RUN_IDS[$i]}"
+    GAF_OUT="$RUNS_DIR/${run}.${MAPTAG}.gaf.gz"
+    RUN_BAM="$RUNS_DIR/${run}.${MAPTAG}.surj.bam"
+    if [ -f "$GAF_OUT" ] || [ -f "$RUN_BAM" ] || [ -f "$SURJ_BAM" ] || [ -f "$FINAL_BAM" ]; then
+        echo "[SKIP] Step 5: GAF for run $run exists."
     else
-        vg giraffe $GIRAFFE_OPTS -f "${s1}" | gzip > "${GAF_OUT}"
+        echo "[RUN] Step 5: Mapping run $run with vg giraffe"
+        if [ -n "${RUN_FQ2[$i]}" ]; then
+            vg giraffe $GIRAFFE_OPTS -f "${RUN_FQ1[$i]}" -f "${RUN_FQ2[$i]}" | gzip > "${GAF_OUT}"
+        else
+            vg giraffe $GIRAFFE_OPTS -f "${RUN_FQ1[$i]}" | gzip > "${GAF_OUT}"
+        fi
     fi
-fi
+done
 
-# --- STEP 6: Surject (GAF to BAM) ---
-SURJ_BAM="$RES_DIR/${sample}.surj.bam"
-FINAL_BAM="$RES_DIR/${sample}.surj_realn.bam"
-
+# --- STEP 6: Surject (one GAF to one BAM per run), then merge per sample ---
 if [ -f "$SURJ_BAM" ] || [ -f "$FINAL_BAM" ]; then
     echo "[SKIP] Step 6: Surjected BAM exists."
 else
@@ -235,25 +260,37 @@ else
         exit 1
     fi
 
-    vg surject \
-        -F "${ref_paths_list}" -x ${HAP_OUT} -t ${threads} \
-        --sam-output --gaf-input --sample ${sample} \
-        --read-group "ID:1 LB:lib1 SM:${sample} PL:illumina" \
-        --prune-low-cplx ${GAF_OUT} > "$RES_DIR/tmp.bam"
+    RUN_BAMS=()
+    for i in "${!RUN_IDS[@]}"; do
+        run="${RUN_IDS[$i]}"
+        GAF_OUT="$RUNS_DIR/${run}.${MAPTAG}.gaf.gz"
+        RUN_BAM="$RUNS_DIR/${run}.${MAPTAG}.surj.bam"
+        RUN_BAMS+=("$RUN_BAM")
+        if [ -f "$RUN_BAM" ]; then
+            echo "[SKIP] Step 6: BAM for run $run exists."
+            continue
+        fi
 
-    python3 "$RENAME_SCRIPT" -f "${ref_idx}" -p "$seqn_prefix" < "$RES_DIR/tmp.bam" > "$RES_DIR/renamed.bam"
+        vg surject \
+            -F "${ref_paths_list}" -x ${HAP_OUT} -t ${threads} \
+            --sam-output --gaf-input --sample ${sample} \
+            --read-group "ID:${run} LB:${run} SM:${sample} PL:illumina" \
+            --prune-low-cplx ${GAF_OUT} > "$RES_DIR/tmp.bam"
 
-    # The pipe that was causing confusion - now safely using bamleftalign
-    bamleftalign --fasta-reference "${ref_fa}" --compressed < "$RES_DIR/renamed.bam" | \
-    samtools sort -m 4G --threads ${threads} -o ${SURJ_BAM}
-    
-    if [ $? -ne 0 ]; then
-        echo "Error: bamleftalign or samtools sort failed."
-        exit 1
-    fi
+        python3 "$RENAME_SCRIPT" -f "${ref_idx}" -p "$seqn_prefix" < "$RES_DIR/tmp.bam" > "$RES_DIR/renamed.bam"
 
+        bamleftalign --fasta-reference "${ref_fa}" --compressed < "$RES_DIR/renamed.bam" | \
+        samtools sort -m 1G --threads ${threads} -o ${RUN_BAM}
+
+        if [ $? -ne 0 ]; then
+            echo "Error: bamleftalign or samtools sort failed."
+            exit 1
+        fi
+    done
+
+    samtools merge -f --threads ${threads} ${SURJ_BAM} "${RUN_BAMS[@]}"
     samtools index ${SURJ_BAM}
-    rm -f "$RES_DIR/tmp.bam" "$RES_DIR/renamed.bam" $MIN_OUT  $DIST_OUT  "$RES_DIR/*.min"
+    rm -f "$RES_DIR/tmp.bam" "$RES_DIR/renamed.bam" "${RUN_BAMS[@]}" ${MIN_OUT} ${ZIPCODES}
 fi
 
 # --- STEP 8 & 9: GATK + ABRA2 Realignment ---
@@ -287,7 +324,8 @@ else
     java -Xmx26G -jar "${ABRA2_JAR}" --targets ${TARGETS_BED} --in ${SURJ_BAM} --out ${FINAL_BAM} --ref "${ref_fa}" --threads ${threads}
     
     samtools index ${FINAL_BAM}
-    rm -f ${SURJ_BAM} "${SURJ_BAM}.bai" ${TARGETS_BED} "$RES_DIR/intervals" "$RES_DIR/tmp.bed"
+    [ -n "$keep_prerealn" ] || rm -f ${SURJ_BAM} "${SURJ_BAM}.bai"
+    rm -f ${TARGETS_BED} "$RES_DIR/intervals" "$RES_DIR/tmp.bed"
 fi
 echo "[RUN] Step Stats"
 # --- Step 1: Generate Detailed Stats ---
