@@ -13,7 +13,7 @@
 #     sbatch scripts/run_mapping.slurm
 #
 # For usage / all options of the underlying script:
-#     bash scripts/map_to_pangenome.sh
+#     bash mapping/map_to_pangenome.sh
 # ==============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

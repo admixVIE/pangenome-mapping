@@ -11,13 +11,13 @@
 # config.sh / environment is set up correctly. Set those up first (see the main
 # README); on the original LISC cluster the built-in fallbacks are used.
 #
-# Usage:  bash test/test_run.sh [work_dir]
-#         THREADS=8 bash test/test_run.sh
+# Usage:  bash mapping/test/test_run.sh [work_dir]
+#         THREADS=8 bash mapping/test/test_run.sh
 # ==============================================================================
 set -euo pipefail
 
 TEST_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO="$(dirname "$TEST_DIR")"
+REPO="$(dirname "$TEST_DIR")"   # = mapping/
 DATA="$TEST_DIR/data"
 WORK="${1:-$TEST_DIR/work}"          # outputs go here (git-ignored)
 THREADS="${THREADS:-4}"
@@ -29,7 +29,7 @@ echo "== Running pipeline on toy data =="
 # Toy graph/reference both use the contig name "chr1", so no prefix needs to be
 # stripped; -pre is set to a string that does not occur (a no-op). On real HPRC
 # data the prefix is "GRCh38#0#".
-bash "$REPO/scripts/map_to_pangenome.sh" \
+bash "$REPO/map_to_pangenome.sh" \
     -s1 "$DATA/toy_reads.fq.gz" -t "$THREADS" \
     -r "$DATA" \
     -g toy.giraffe.gbz -h toy.hapl -p toy.paths_list.txt \

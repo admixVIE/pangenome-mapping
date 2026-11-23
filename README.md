@@ -88,24 +88,24 @@ Set two things:
 
 ```bash
 # single-end
-bash scripts/map_to_pangenome.sh -s1 reads.fq.gz -t 8
+bash mapping/map_to_pangenome.sh -s1 reads.fq.gz -t 8
 
 # paired-end
-bash scripts/map_to_pangenome.sh -s1 reads_R1.fq.gz -s2 reads_R2.fq.gz -t 8
+bash mapping/map_to_pangenome.sh -s1 reads_R1.fq.gz -s2 reads_R2.fq.gz -t 8
 
 # several runs per sample (runs.tsv: sample, run, fq1, fq2; fq2 empty for single-end)
-bash scripts/map_to_pangenome.sh -S Bon002 --runs runs.tsv -t 8
+bash mapping/map_to_pangenome.sh -S Bon002 --runs runs.tsv -t 8
 
 # change the mapping minimizer k / w (default 15 / 5; haplotype sampling is fixed at 29 / 11)
-bash scripts/map_to_pangenome.sh -S Bon002 --runs runs.tsv -t 8 -k 29 -w 11
+bash mapping/map_to_pangenome.sh -S Bon002 --runs runs.tsv -t 8 -k 29 -w 11
 ```
 
 Run with no arguments to print the full option list (`-r`, `-ref`, `-g`, `-h`,
 `-p`, `-pre`, ...). On a SLURM cluster, edit and submit
-[`scripts/run_mapping.slurm`](scripts/run_mapping.slurm):
+[`mapping/run_mapping.slurm`](mapping/run_mapping.slurm):
 
 ```bash
-sbatch scripts/run_mapping.slurm
+sbatch mapping/run_mapping.slurm
 ```
 
 The script is **resumable**: each step is skipped if its output already exists,
@@ -118,11 +118,11 @@ in seconds without downloading the large references — handy for checking your
 environment is set up correctly:
 
 ```bash
-bash test/test_run.sh
+bash mapping/test/test_run.sh
 # -> TEST PASSED: ... toy_reads.k15_w5.surj_realn.bam  (Mapped 3993 / 4000 reads)
 ```
 
-See [test/README.md](test/README.md) for details.
+See [mapping/test/README.md](mapping/test/README.md) for details.
 
 ## Repository layout
 
@@ -130,17 +130,14 @@ See [test/README.md](test/README.md) for details.
 pangenome-mapping/
 ├── README.md
 ├── config.example.sh          # copy to config.sh (git-ignored) and edit
-├── scripts/
+├── mapping/
 │   ├── map_to_pangenome.sh     # the pipeline
 │   ├── rename_bam_stream.py    # strips the graph's contig-name prefix
-│   └── run_mapping.slurm       # SLURM submission wrapper
-├── references/
-│   ├── download_references.sh  # fetches hg38 + HPRC graph + ABRA2 (not in git)
-│   └── hprc-v1.1-mc-grch38.paths_list.txt   # small, ships with the repo
-└── test/
-    ├── test_run.sh             # end-to-end smoke test on the toy data
-    ├── make_test_data.sh       # regenerates the fixtures (optional)
-    └── data/                   # tiny synthetic pangenome (~260 KB)
+│   ├── run_mapping.slurm       # SLURM submission wrapper
+│   └── test/                   # end-to-end smoke test + tiny toy pangenome
+└── references/
+    ├── download_references.sh  # fetches hg38 + HPRC graph + ABRA2 (not in git)
+    └── hprc-v1.1-mc-grch38.paths_list.txt   # small, ships with the repo
 ```
 
 ## Outputs

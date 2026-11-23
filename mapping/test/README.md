@@ -6,7 +6,7 @@ the pipeline end-to-end in a few seconds — no ~30 GB reference download needed
 ## Run it
 
 ```bash
-bash test/test_run.sh
+bash mapping/test/test_run.sh
 ```
 
 This runs the full `map_to_pangenome.sh` pipeline on the toy data and checks that
@@ -47,5 +47,5 @@ The fixtures are committed, so you don't need to. To rebuild them from scratch
 (requires vg, samtools, HTSlib, python3):
 
 ```bash
-bash test/make_test_data.sh
+bash mapping/test/make_test_data.sh
 ```
