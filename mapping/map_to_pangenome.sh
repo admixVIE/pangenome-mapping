@@ -4,7 +4,7 @@
 # Mapping pipeline: reads -> personalized HPRC graph -> BAM on GRCh38 coordinates
 #
 #   1. kmc            count k-mers over all runs of the sample (k=29)
-#   2. vg haplotypes  sample ONE personalized graph per sample
+#   2. vg haplotypes  sample one personalized graph per sample
 #   3. vg index       distance index
 #   4. vg minimizer   minimizer index (mapping k/w)
 #   5. vg giraffe     map each run, write BAM directly (-o BAM, surjected on the
