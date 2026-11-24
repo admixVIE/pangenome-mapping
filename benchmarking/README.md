@@ -6,20 +6,19 @@ against the HG002 T2T-Q100 v1.1 small-variant truth set with **hap.py**
 
 | script | what it does |
 |---|---|
-| `scripts/happy_array.sbatch` | hap.py on `confidence.vcf.gz` of one finished set (SLURM array; line N of `$LIST` = `<arm> <set>`) |
-| `scripts/happy_dp1_array.sbatch` | 1x only: rebuild confidence from `raw.vcf.gz` with DP>=1, then hap.py |
-| `scripts/make_summary_table.py` | collect `summary_happy.tsv` into the pangenome-vs-linear table |
-| `scripts/plot_summary_figures.py` | precision / recall / F1 figures |
-| `scripts/plot_read_length_kde.py`, `plot_mapdamage_combined.py` | read-length and damage-profile figures |
-| `lib/` | `lib_harmonize.sh` (contig-name / ALT=* harmonisation), het-AB awk filter, `rtg-wrapped-mem` (caps rtg's Java heap) |
+| `scripts/happy_array.sbatch` | one SLURM array script: builds the confidence call set from `raw.vcf.gz` (PASS, `DP >= MIN_DP`, het allele balance 0.3-0.7) and scores it with hap.py; `MIN_DP` defaults to 5 |
+| `lib/` | `hetfilt_0.3_0.7.awk` (het allele-balance filter), `rtg-wrapped-mem` (caps rtg's Java heap; optional, drop `--engine-vcfeval-path` if you have enough RAM) |
+
+Summary tables and plots are not included: `postproc/results/summary_happy.tsv`
+is a plain TSV (arm, set, coverage, threshold tag, hap.py columns) to plot as you like.
 
 ## Setup
 
 ```bash
-cp config.example.sh config.sh && $EDITOR config.sh   # truth dir, hap.py image, rtg-tools, BENCH_ROOT
 cd benchmarking
+cp config.example.sh config.sh && $EDITOR config.sh   # truth dir, hap.py image, rtg-tools, BENCH_ROOT
 sbatch --array=0-N --export=ALL,LIST=/path/to/list.txt scripts/happy_array.sbatch
+# other depth threshold, e.g. 1x sets:  --export=ALL,LIST=...,MIN_DP=1
 ```
 
-The python scripts read `BENCH_ROOT` from the environment (the results working
-directory). Not tested outside the original cluster.
+Not tested outside the original cluster.

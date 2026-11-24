@@ -1,14 +1,5 @@
-# hetfilt_0.3_0.7.awk -- reconstructed 2026-09-16 (original deleted during a
-# scratch-space cleanup, no backup existed). Called on a single-sample,
-# already-biallelic (post `bcftools norm -m-`) VCF stream as the last stage of
-# the "confidence" set: raw AND FILTER==PASS AND INFO/DP>=5 AND het 0.3-0.7.
-#
-# Header lines and any record without a usable GT/AD pass through untouched.
-# Homozygous genotypes (0/0, 1/1, ...) pass through unconditionally -- this
-# filter only targets heterozygous allele-balance skew. A het call is kept
-# only if AD[alt allele]/(AD[ref allele]+AD[alt allele]) falls in [0.3, 0.7];
-# outside that range it's dropped as a likely miscall (e.g. near-homozygous
-# support masquerading as het).
+# Keep a heterozygous call only if alt/(ref+alt) read support is in [0.3, 0.7].
+# Input: single-sample, biallelic VCF stream. Homozygous calls and records without GT/AD pass unchanged.
 BEGIN { FS = OFS = "\t" }
 /^#/ { print; next }
 {
