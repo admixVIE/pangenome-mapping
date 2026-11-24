@@ -19,7 +19,7 @@ Expected output (numbers may vary slightly by tool version):
 
 ```
 TEST PASSED: produced .../toy_reads.k15_w5.bam
-Mapped 3993 / 4000 reads.
+Mapped 4000 / 4000 reads.
 ```
 
 Outputs are written to `mapping/test/work/` (git-ignored).

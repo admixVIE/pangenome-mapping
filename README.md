@@ -118,7 +118,7 @@ environment is set up correctly:
 
 ```bash
 bash mapping/test/test_run.sh
-# -> TEST PASSED: ... toy_reads.k15_w5.bam  (Mapped 3993 / 4000 reads)
+# -> TEST PASSED: ... toy_reads.k15_w5.bam  (Mapped 4000 / 4000 reads)
 ```
 
 See [mapping/test/README.md](mapping/test/README.md) for details.
