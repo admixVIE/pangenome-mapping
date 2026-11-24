@@ -43,7 +43,7 @@ for COND in short mid long; do
     $GARG/src/adptSim --seed $((SEED_BASE+3)) -f $ADAPTF -s $ADAPTR -l $READLEN -artp $COND.$DAM.adapt.fa.gz $COND.$DAM.damaged.fa.gz
 
     # 4) Illumina read simulation (default ART HS25 substitution AND small indel errors; quality scores not used)
-    #    (conditions short/low, short/mid, mid/high, long/low, long/mid: this step was run in 20 parts with different seeds, 04_art_split/part/join.sh,
+    #    (conditions short/low, short/mid, mid/high, long/low, long/mid: this step was run in 20 parts with different seeds (splitting scripts not included),
     #     because single ART runs stalled; parameters identical)
     $GARG/art_src_MountRainier/art_illumina -rs $((SEED_BASE+5)) -ss $PLATFORM -amp -na -p -i $COND.$DAM.adapt.fa.gz -l $READLEN -c 1 -qs 0 -qs2 0 -gzl 4 -o $COND.$DAM.art
     #    -> $COND.$DAM.art1.fq.gz / art2.fq.gz  (paired reads, 2 x 125 bp)
